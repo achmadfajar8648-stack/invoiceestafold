@@ -1,0 +1,176 @@
+/* ===== Body & Layout ===== */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #e6f0ff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.container {
+  width: 80%;
+  background-color: #ffffff;
+  padding: 20px;
+  margin: 20px 0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 10px;
+}
+
+/* ===== Header ===== */
+header {
+  text-align: center;
+  background-color: #003366;
+  color: #ffffff;
+  padding: 15px 0;
+  border-radius: 10px 10px 0 0;
+}
+
+header img {
+  height: 40px;
+  vertical-align: middle;
+}
+
+/* ===== Form Pembeli ===== */
+.buyer-info {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+}
+
+.buyer-info label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #003366;
+}
+
+.buyer-info input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #b3d1ff;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+/* ===== Form Tambah Produk ===== */
+.item-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.item-form select,
+.item-form input {
+  padding: 8px;
+  border: 1px solid #b3d1ff;
+  border-radius: 5px;
+}
+
+.item-form button {
+  background-color: #003366;
+  color: #ffffff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.item-form button:hover {
+  background-color: #0052cc;
+}
+
+/* ===== Tabel Produk ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+table th, table td {
+  border: 1px solid #b3d1ff;
+  padding: 8px;
+  text-align: center;
+}
+
+table th {
+  background-color: #cce0ff;
+  color: #003366;
+}
+
+.delete-btn {
+  background-color: #cc0000;
+  color: #ffffff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.delete-btn:hover {
+  background-color: #ff3333;
+}
+
+/* ===== Total Harga ===== */
+.invoice-total {
+  margin-top: 10px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+  color: #003366;
+}
+
+/* ===== Tombol Export PDF ===== */
+#export-pdf-btn {
+  background-color: #003366;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+#export-pdf-btn:hover {
+  background-color: #0052cc;
+}
+
+
+/* ===== Responsive Layout ===== */
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+    padding: 15px;
+  }
+
+  .buyer-info {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .item-form {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .item-form select,
+  .item-form input,
+  .item-form button {
+    width: 100%;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  #export-pdf-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+}

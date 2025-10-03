@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estafold</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- jsPDF & html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <img src="gambar/estafoldlogo.png" alt="Logo Perusahaan">
+    </header>
+     <h2>Invoice Pembayaran</h2>
+    <!-- Informasi Pembeli & Invoice -->
+    <div class="buyer-info">
+      <div class="buyer-left">
+        <label for="buyer-name-input">Nama Pembeli:</label>
+        <input type="text" id="buyer-name-input" placeholder="Nama Pembeli">
+        <label for="buyer-phone-input">No. HP:</label>
+        <input type="text" id="buyer-phone-input" placeholder="08123456789">
+      </div>
+      <div class="buyer-right">
+        <p><strong>ID Invoice:</strong> <span id="payment-id"></span></p>
+        <p><strong>Tanggal:</strong> <span id="invoice-date"></span></p>
+      </div>
+    </div>
+
+    <!-- Form Tambah Produk -->
+    <div class="item-form">
+  <select id="product-type">
+    <option value="">Pilih Produk</option>
+  </select>
+
+  <select id="product-color">
+    <option value="">Pilih Warna</option>
+  </select>
+
+  <select id="product-size">
+    <option value="">Pilih Ukuran</option>
+  </select>
+
+  <input type="number" id="item-qty" placeholder="Jumlah">
+  <input type="number" id="item-price" placeholder="Harga Satuan">
+  <button id="add-item-btn">Tambah</button>
+</div>
+
+
+    <!-- Tabel Produk -->
+    <table id="items-table">
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Jumlah</th>
+          <th>Harga Satuan</th>
+          <th>Subtotal</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Row akan ditambahkan JS -->
+      </tbody>
+    </table>
+
+    <!-- Total & Export PDF -->
+    <div class="invoice-total">
+      <strong>Total: Rp <span id="total-amount">0</span></strong>
+    </div>
+    <div class="buyer-info">
+    <label for="paid-amount">Uang Dibayar:</label>
+    <input type="number" id="paid-amount" placeholder="Masukkan jumlah uang dibayar">
+    </div>
+
+    <div class="invoice-total">
+    <strong>Kembalian: Rp <span id="change-amount">0</span></strong>
+    </div>
+
+    <button id="export-pdf-btn">Export PDF</button>
+  </div>
+
+  <script src="products.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
