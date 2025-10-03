@@ -1,15 +1,22 @@
-// script.js (VERSI TERBARU: multi dropdown produk + warna + size + export PDF)
-(function() {
+// script.js
+// Fitur utama:
+// - Harga sablon berdasarkan size
+// - Diskon sablon: qty > 12 pcs => -1000/item
+// - Diskon baju: 24–47 pcs total => -1000/item, >=48 pcs total => -2000/item
+// - Tabel tampil Harga Asli, Diskon, Harga Akhir, Subtotal live
+// - Export PDF manual, No & Nama kiri; angka kanan
+
+(function () {
   'use strict';
 
   /* ---------------- helpers ---------------- */
   function generatePaymentID() {
     const today = new Date();
     const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const random = Math.floor(1000 + Math.random() * 9000);
-    return `INV-${yyyy}${mm}${dd}-${random}`;
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const r = Math.floor(1000 + Math.random() * 9000);
+    return `INV-${yyyy}${mm}${dd}-${r}`;
   }
 
   function formatCurrency(num) {
@@ -22,77 +29,132 @@
     if (typeof str === 'number') return str;
     let s = String(str).trim();
     if (s === '') return 0;
-    s = s.replace(/\s/g, '');
-    if (s.indexOf('.') > -1 && s.indexOf(',') > -1) {
-      s = s.replace(/\./g, '').replace(/,/g, '.');
-    } else {
-      s = s.replace(/\./g, '').replace(/,/g, '.');
-    }
-    s = s.replace(/[^0-9.\-]+/g, '');
+    s = s.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.\-]+/g, '');
     const n = parseFloat(s);
     return isNaN(n) ? 0 : n;
   }
 
-  /* ---------------- DOM elements ---------------- */
-  const paymentIDElem = document.getElementById("payment-id");
-  const invoiceDateElem = document.getElementById("invoice-date");
-  const buyerNameInput = document.getElementById("buyer-name-input");
-  const buyerPhoneInput = document.getElementById("buyer-phone-input");
+  /* ---------------- DOM refs ---------------- */
+  const paymentIDElem = document.getElementById('payment-id');
+  const invoiceDateElem = document.getElementById('invoice-date');
+  const buyerNameInput = document.getElementById('buyer-name-input');
+  const buyerPhoneInput = document.getElementById('buyer-phone-input');
 
-  const productType = document.getElementById("product-type");
-  const productColor = document.getElementById("product-color");
-  const productSize = document.getElementById("product-size");
+  const productType = document.getElementById('product-type');
+  const productColor = document.getElementById('product-color');
+  const productSize = document.getElementById('product-size');
 
-  const itemQtyInput = document.getElementById("item-qty");
-  const itemPriceInput = document.getElementById("item-price");
-  const addItemBtn = document.getElementById("add-item-btn");
-  const itemsTableBody = document.querySelector("#items-table tbody");
+  const itemQtyInput = document.getElementById('item-qty');
+  const itemPriceInput = document.getElementById('item-price');
+  const addItemBtn = document.getElementById('add-item-btn');
+  const itemsTableBody = document.querySelector('#items-table tbody');
 
-  const totalAmountElem = document.getElementById("total-amount");
-  const paidAmountInput = document.getElementById("paid-amount");
-  const changeAmountElem = document.getElementById("change-amount");
-  const exportPdfBtn = document.getElementById("export-pdf-btn");
+  const totalAmountElem = document.getElementById('total-amount');
+  const paidAmountInput = document.getElementById('paid-amount');
+  const changeAmountElem = document.getElementById('change-amount');
+  const exportPdfBtn = document.getElementById('export-pdf-btn');
 
   if (paymentIDElem) paymentIDElem.textContent = generatePaymentID();
-  if (invoiceDateElem) invoiceDateElem.textContent = new Date().toLocaleDateString("id-ID");
+  if (invoiceDateElem) invoiceDateElem.textContent = new Date().toLocaleDateString('id-ID');
 
   let currentTotal = 0;
 
+  /* ---------------- Diskon Baju Helper (2 tier) ---------------- */
+  function applyBajuDiscount(kode) {
+    const rows = Array.from(itemsTableBody.querySelectorAll('tr'))
+      .filter(r => r.getAttribute('data-kode') === kode);
+
+    let totalQty = 0;
+    rows.forEach(r => {
+      totalQty += parseFloat(r.getAttribute('data-qty') || 0);
+    });
+
+    rows.forEach(r => {
+      const basePrice = parseFloat(r.getAttribute('data-baseprice') || 0);
+      const qty = parseFloat(r.getAttribute('data-qty') || 0);
+
+      // --- logika 2 tier ---
+      let diskonPerItem = 0;
+      if (totalQty >= 48) {
+        diskonPerItem = 2000;
+      } else if (totalQty >= 24) {
+        diskonPerItem = 1000;
+      }
+
+      const hargaAkhir = Math.max(0, basePrice - diskonPerItem);
+
+      r.cells[2].textContent = `Rp ${formatCurrency(basePrice)}`;
+      r.cells[3].textContent = `Rp ${formatCurrency(diskonPerItem) + "/pcs"}`;
+      r.cells[4].textContent = `Rp ${formatCurrency(hargaAkhir)}`;
+      r.cells[5].textContent = `Rp ${formatCurrency(hargaAkhir * qty)}`;
+    });
+
+    updateTotal();
+  }
+
   /* ---------------- products dropdown ---------------- */
-  if (typeof products === "undefined") {
-    console.error("Products array belum didefinisikan!");
+  if (typeof products === 'undefined') {
+    console.error('Products array belum didefinisikan!');
     return;
   }
 
   if (productType) {
-    // isi dropdown produk
     products.forEach(p => {
-      const opt = document.createElement("option");
+      const opt = document.createElement('option');
       opt.value = p.kode;
-      opt.textContent = `${p.nama} - Rp ${formatCurrency(p.harga)}`;
+      opt.textContent = `${p.nama}${(p.harga || p.harga === 0) ? ' - Rp ' + formatCurrency(p.harga) : ''}`;
       productType.appendChild(opt);
     });
 
-    // event pilih produk → isi warna & size
-    productType.addEventListener("change", function () {
+    productType.addEventListener('change', function () {
       productColor.innerHTML = '<option value="">Pilih Warna</option>';
       productSize.innerHTML = '<option value="">Pilih Ukuran</option>';
+      itemPriceInput.value = '';
 
       const selected = products.find(p => p.kode === this.value);
       if (selected) {
-        selected.warna.forEach(w => {
-          const opt = document.createElement("option");
-          opt.value = w;
-          opt.textContent = w;
-          productColor.appendChild(opt);
-        });
-        selected.size.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = s;
-          opt.textContent = s;
-          productSize.appendChild(opt);
-        });
-        itemPriceInput.value = selected.harga;
+        if (Array.isArray(selected.warna) && selected.warna.length > 0) {
+          selected.warna.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            opt.textContent = w;
+            productColor.appendChild(opt);
+          });
+        } else {
+          productColor.innerHTML = '<option value="-">-</option>';
+        }
+
+        if (Array.isArray(selected.size) && selected.size.length > 0) {
+          if (typeof selected.size[0] === 'string') {
+            selected.size.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s;
+              opt.textContent = s;
+              productSize.appendChild(opt);
+            });
+            if (selected.harga || selected.harga === 0) {
+              itemPriceInput.value = selected.harga;
+            }
+          } else {
+            selected.size.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.nama;
+              opt.textContent = s.nama;
+              opt.dataset.harga = s.harga;
+              productSize.appendChild(opt);
+            });
+            itemPriceInput.value = '';
+          }
+        } else {
+          productSize.innerHTML = '<option value="-">-</option>';
+        }
+      }
+    });
+
+    productSize.addEventListener('change', function () {
+      const sizeOption = this.options[this.selectedIndex];
+      if (sizeOption && sizeOption.dataset.harga) {
+        itemPriceInput.value = sizeOption.dataset.harga;
       }
     });
   }
@@ -100,11 +162,9 @@
   /* ---------------- total & change ---------------- */
   function updateTotal() {
     let total = 0;
-    if (!itemsTableBody) return;
-    itemsTableBody.querySelectorAll("tr").forEach(row => {
-      const subtotalText = row.cells[3] ? row.cells[3].textContent : "";
-      const subtotalNum = parseCurrencyToNumber(subtotalText);
-      total += subtotalNum;
+    itemsTableBody.querySelectorAll('tr').forEach(row => {
+      const subtotalText = row.cells[5] ? row.cells[5].textContent : '';
+      total += parseCurrencyToNumber(subtotalText);
     });
     currentTotal = total;
     if (totalAmountElem) totalAmountElem.textContent = formatCurrency(total);
@@ -112,68 +172,84 @@
   }
 
   function updateChange() {
-    const total = currentTotal;
     const paid = paidAmountInput ? parseCurrencyToNumber(paidAmountInput.value) : 0;
-    const change = paid - total;
+    const change = paid - currentTotal;
     if (changeAmountElem) changeAmountElem.textContent = formatCurrency(change);
   }
 
-  if (paidAmountInput) {
-    paidAmountInput.addEventListener("input", updateChange);
-  }
+  if (paidAmountInput) paidAmountInput.addEventListener('input', updateChange);
 
   /* ---------------- add item ---------------- */
-  if (addItemBtn && itemsTableBody) {
-    addItemBtn.addEventListener("click", function () {
+  if (addItemBtn) {
+    addItemBtn.addEventListener('click', function () {
       const kode = productType.value;
-      const warna = productColor.value;
-      const size = productSize.value;
+      const warna = productColor.value || '-';
+      const sizeOption = productSize.options[productSize.selectedIndex];
+      const sizeText = sizeOption ? sizeOption.textContent : '';
       const qty = parseFloat(itemQtyInput.value) || 0;
       let price = parseCurrencyToNumber(itemPriceInput.value);
 
-      if (!kode || !warna || !size || qty <= 0) {
-        alert("Mohon pilih produk, warna, ukuran & jumlah!");
+      if (!kode || !sizeOption || qty <= 0) {
+        alert('Mohon pilih produk, ukuran & jumlah!');
         return;
       }
 
       const produk = products.find(p => p.kode === kode);
-      if (!produk) { alert("Produk tidak ditemukan"); return; }
-      if (!price || price <= 0) price = produk.harga;
+      if (!produk) return;
 
-      const subtotal = qty * price;
+      if (!price || price <= 0) {
+        if (Array.isArray(produk.size) && typeof produk.size[0] === 'string') {
+          price = produk.harga || 0;
+        } else {
+          price = parseCurrencyToNumber(sizeOption.dataset.harga);
+        }
+      }
 
-      const row = document.createElement("tr");
+      let diskonPerItem = 0;
+      if (produk.kode === 'SBLN' && qty > 12) diskonPerItem = 1000;
+
+      const hargaAkhir = price - diskonPerItem;
+      const subtotal = qty * hargaAkhir;
+
+      const row = document.createElement('tr');
+      row.setAttribute('data-kode', produk.kode);
+      row.setAttribute('data-qty', qty);
+      row.setAttribute('data-baseprice', price);
+
       row.innerHTML = `
-        <td>${produk.nama} - ${warna} Size ${size}</td>
+        <td>${produk.nama}${warna && warna !== '-' ? ' - ' + warna : ''}${sizeText ? ' - ' + sizeText : ''}</td>
         <td>${qty}</td>
         <td>Rp ${formatCurrency(price)}</td>
+        <td>Rp ${formatCurrency(diskonPerItem) + "/pcs"}</td>
+        <td>Rp ${formatCurrency(hargaAkhir)}</td>
         <td>Rp ${formatCurrency(subtotal)}</td>
         <td><button class="delete-btn">Hapus</button></td>
       `;
       itemsTableBody.appendChild(row);
 
-      // reset
-      productType.value = "";
-      productColor.innerHTML = '<option value="">Pilih Warna</option>';
-      productSize.innerHTML = '<option value="">Pilih Ukuran</option>';
-      itemQtyInput.value = "";
-      itemPriceInput.value = "";
-
-      // delete handler
-      row.querySelector(".delete-btn").addEventListener("click", function () {
+      row.querySelector('.delete-btn').addEventListener('click', function () {
+        const kodeProduk = row.getAttribute('data-kode');
         row.remove();
         updateTotal();
+        if (kodeProduk !== 'SBLN') applyBajuDiscount(kodeProduk);
       });
 
       updateTotal();
+      if (produk.kode !== 'SBLN') applyBajuDiscount(produk.kode);
+
+      productType.value = '';
+      productColor.innerHTML = '<option value="">Pilih Warna</option>';
+      productSize.innerHTML = '<option value="">Pilih Ukuran</option>';
+      itemQtyInput.value = '';
+      itemPriceInput.value = '';
     });
   }
 
   /* ---------------- export PDF ---------------- */
   if (exportPdfBtn) {
-    exportPdfBtn.addEventListener("click", function () {
+    exportPdfBtn.addEventListener('click', function () {
       if (!window.jspdf || !window.jspdf.jsPDF) {
-        alert("Library jsPDF belum termuat. Pastikan CDN jsPDF ada di index.html");
+        alert('Library jsPDF belum termuat. Pastikan CDN jsPDF ada di index.html');
         return;
       }
       const { jsPDF } = window.jspdf;
@@ -182,85 +258,81 @@
       let y = 50;
       const lineHeight = 18;
 
-      doc.setFontSize(18);
-      doc.setFont("helvetica", "bold");
-      doc.text("INVOICE PEMBAYARAN", margin, y);
+      doc.setFontSize(18).setFont('helvetica', 'bold');
+      doc.text('INVOICE PEMBAYARAN', margin, y);
 
       const img = new Image();
-      img.src = "gambar/logoitem.png";
+      img.src = 'gambar/logoitem.png';
       img.onload = generatePDF;
       img.onerror = generatePDF;
 
       function generatePDF() {
-        try {
-          if (img.complete) doc.addImage(img, 'PNG', 450, 20, 80, 60);
-        } catch (e) { console.warn("Logo tidak dapat dimasukkan:", e); }
-
+        try { if (img.complete) doc.addImage(img, 'PNG', 450, 20, 80, 60); } catch {}
         y += 40;
 
         const total = currentTotal;
-        const paid = paidAmountInput ? parseCurrencyToNumber(paidAmountInput.value) : 0;
-        const change = paid - total;
+        const paid = parseCurrencyToNumber(paidAmountInput ? paidAmountInput.value : 0);
 
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Invoice ID: ${paymentIDElem ? paymentIDElem.textContent : ""}`, margin, y); y += lineHeight;
-        doc.text(`Tanggal: ${invoiceDateElem ? invoiceDateElem.textContent : ""}`, margin, y); y += lineHeight;
-        doc.text(`Nama Pembeli: ${buyerNameInput ? buyerNameInput.value : ""}`, margin, y); y += lineHeight;
-        doc.text(`No HP: ${buyerPhoneInput ? buyerPhoneInput.value : ""}`, margin, y); y += lineHeight + 6;
+        doc.setFontSize(9).setFont('helvetica', 'normal');
+        doc.text(`Invoice ID: ${paymentIDElem?.textContent || ''}`, margin, y); y += lineHeight;
+        doc.text(`Tanggal: ${invoiceDateElem?.textContent || ''}`, margin, y); y += lineHeight;
+        doc.text(`Nama Pembeli: ${buyerNameInput?.value || ''}`, margin, y); y += lineHeight;
+        doc.text(`No HP: ${buyerPhoneInput?.value || ''}`, margin, y); y += lineHeight + 6;
 
         // Header tabel
-        doc.setFont("helvetica", "bold");
-        const tableHeaders = ["No", "Nama Produk", "Harga", "Jumlah", "Subtotal"];
-        const colPositions = [margin, margin + 40, margin + 220, margin + 320, margin + 430];
-        tableHeaders.forEach((h, i) => doc.text(h, colPositions[i], y));
+        doc.setFont('helvetica', 'bold');
+        const headers = ['No', 'Nama Produk', 'Harga Asli', 'Jumlah', 'Diskon', 'Harga Akhir', 'Subtotal'];
+        const colWidths = [30, 140, 80, 40, 70, 80, 90];
+        const colPositions = [];
+        let pos = margin;
+        colWidths.forEach(w => { colPositions.push(pos); pos += w; });
+
+        headers.forEach((h, i) => {
+          if (i <= 1) doc.text(h, colPositions[i] + 2, y);
+          else doc.text(h, colPositions[i] + colWidths[i] - 2, y, { align: 'right' });
+        });
+
         y += lineHeight;
-        doc.setLineWidth(0.5);
-        doc.line(margin, y - 10, 550, y - 10);
+        doc.line(margin, y - 10, margin + colWidths.reduce((a, b) => a + b), y - 10);
 
         // Isi tabel
-        doc.setFont("helvetica", "normal");
+        doc.setFont('helvetica', 'normal');
         let no = 1;
-        if (itemsTableBody) {
-          itemsTableBody.querySelectorAll("tr").forEach(row => {
-            const cols = row.querySelectorAll("td");
-            if (!cols || cols.length < 4) return;
+        itemsTableBody.querySelectorAll('tr').forEach(row => {
+          const cols = row.querySelectorAll('td');
+          if (cols.length < 6) return;
 
-            doc.text(String(no), colPositions[0], y);
+          doc.text(String(no), colPositions[0] + 2, y);
+          const productName = doc.splitTextToSize(cols[0].textContent, colWidths[1] - 5);
+          doc.text(productName, colPositions[1] + 2, y);
+          doc.text(cols[2].textContent.replace(/Rp\s*/, '').trim(), colPositions[2] + colWidths[2] - 2, y, { align: 'right' });
+          doc.text(cols[1].textContent, colPositions[3] + colWidths[3] - 2, y, { align: 'right' });
+          doc.text(cols[3].textContent.replace(/Rp\s*/, '').trim(), colPositions[4] + colWidths[4] - 2, y, { align: 'right' });
+          doc.text(cols[4].textContent.replace(/Rp\s*/, '').trim(), colPositions[5] + colWidths[5] - 2, y, { align: 'right' });
+          doc.text(cols[5].textContent.replace(/Rp\s*/, '').trim(), colPositions[6] + colWidths[6] - 2, y, { align: 'right' });
 
-            // Wrap nama produk
-            const productName = doc.splitTextToSize(cols[0].textContent, 150);
-            doc.text(productName, colPositions[1], y);
-            doc.text(cols[2].textContent.replace(/Rp\s*/, '').trim(), colPositions[2], y, { align: "right" });
-            doc.text(cols[1].textContent, colPositions[3], y, { align: "center" });
-            doc.text(cols[3].textContent.replace(/Rp\s*/, '').trim(), colPositions[4], y, { align: "right" });
-            y += productName.length * lineHeight;
-            no++;
-
-            if (y > 750) {
-              doc.addPage();
-              y = 50;
-            }
-          });
-        }
+          y += lineHeight;
+          no++;
+          if (y > 750) { doc.addPage(); y = 50; }
+        });
 
         y += 10;
-        doc.line(margin, y, 550, y); y += 20;
-        doc.setFont("helvetica", "bold");
-        doc.text(`Total: Rp ${formatCurrency(total)}`, 550, y, { align: "right" }); y += lineHeight;
-        doc.text(`Uang Dibayar: Rp ${formatCurrency(paid)}`, 550, y, { align: "right" }); y += lineHeight;
-        doc.text(`Kembalian: Rp ${formatCurrency(change)}`, 550, y, { align: "right" }); y += lineHeight + 10;
+        doc.line(margin, y, margin + colWidths.reduce((a, b) => a + b), y);
+        y += 20;
 
-        // ucapan terima kasih
-        doc.setFont("helvetica", "italic");
-        doc.text("Terima kasih telah berbelanja di Estafold", 370, y, { align: "right" });
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total: Rp ${formatCurrency(total)}`, 550, y, { align: 'right' }); y += lineHeight;
+        doc.text(`Uang Dibayar: Rp ${formatCurrency(paid)}`, 550, y, { align: 'right' }); y += lineHeight;
+        doc.text(`Kembalian: Rp ${formatCurrency(paid - total)}`, 550, y, { align: 'right' }); y += lineHeight + 10;
+
+        doc.setFont('helvetica', 'italic');
+        doc.text('Terima kasih telah berbelanja di Estafold', 350, y, { align: 'right' });
         y += lineHeight + 10;
 
-        // Catatan
-        doc.setFont("helvetica", "bold");
-        doc.text("Catatan:", margin, y);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Catatan:', margin, y);
         y += lineHeight;
-        doc.setFont("helvetica", "normal");
+        doc.setFont('helvetica', 'normal');
         const notes = [
           "* Untuk Jenis sablon DTF design dibawah 2 mm atau gradasi terlalu tipis ada kemungkinan tidak tercetak.",
           "* Warna sablon tidak bisa sama persis dgn warna yg di layar, hanya bisa mengikuti 80% dari warna design.",
@@ -276,14 +348,10 @@
           y += splitNote.length * lineHeight;
         });
 
-        // Simpan PDF
         doc.save(`Estafold-${paymentIDElem ? paymentIDElem.textContent : 'INV'}.pdf`);
       }
     });
   }
-
-  if (buyerNameInput) buyerNameInput.addEventListener("input", () => buyerNameInput.setAttribute("value", buyerNameInput.value));
-  if (buyerPhoneInput) buyerPhoneInput.addEventListener("input", () => buyerPhoneInput.setAttribute("value", buyerPhoneInput.value));
 
   updateTotal();
 })();
