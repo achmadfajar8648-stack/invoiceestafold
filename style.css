@@ -138,6 +138,24 @@ table th {
   background-color: #0052cc;
 }
 
+.verify-link {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.verify-link a {
+  color: #0066cc;
+  text-decoration: none;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.verify-link a:hover {
+  text-decoration: underline;
+  color: #004a99;
+}
+
+
 
 /* ===== Responsive Layout ===== */
 @media (max-width: 768px) {

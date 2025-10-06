@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Invoice | Estafold</title>
+  <style>
+    :root {
+      --green-main: #003366;
+      --green-hover: #003366;
+      --gray-bg: #f5f7f6;
+      --border-color: #ddd;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      background-color: var(--gray-bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      padding: 30px 35px;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .container:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    h2 {
+      margin-top: 0;
+      color: var(--green-main);
+      font-weight: 600;
+      margin-bottom: 25px;
+      letter-spacing: 0.5px;
+    }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+    input:focus {
+      border-color: var(--green-main);
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--green-main);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-size: 15px;
+    }
+    button:hover {
+      background-color: var(--green-hover);
+    }
+    .result {
+      margin-top: 15px;
+      font-weight: 600;
+      font-size: 15px;
+      border-radius: 6px;
+      padding: 10px;
+      display: inline-block;
+      width: 100%;
+    }
+    .valid {
+      color: #1b5e20;
+      background-color: #e6f4ea;
+      border: 1px solid #c8e6c9;
+    }
+    .invalid {
+      color: #b71c1c;
+      background-color: #fdecea;
+      border: 1px solid #f5c6cb;
+    }
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="gambar/logoitem.png" alt="Estafold Logo" class="logo">
+    <h2>Verifikasi Invoice</h2>
+    <input type="text" id="invoice-id" placeholder="Nomor Invoice (contoh: INV-20251006-4312)">
+    <input type="number" id="total" placeholder="Total Harga (contoh: 1200000)">
+    <input type="text" id="kode" placeholder="Kode Validasi (contoh: 9C7AF3D2)">
+    <button onclick="verifyInvoice()">Verifikasi</button>
+    <div id="result" class="result"></div>
+    <footer>© 2025 Estafold — Sistem Invoice Aman</footer>
+  </div>
+
+  <script>
+    // Fungsi hashing sama seperti di aplikasi utama
+    function generateValidationCode(invoiceID, total) {
+      const raw = `${invoiceID}-${total}`;
+      let hash = 0;
+      for (let i = 0; i < raw.length; i++) {
+        hash = (hash << 5) - hash + raw.charCodeAt(i);
+        hash |= 0;
+      }
+      return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+    }
+
+    function verifyInvoice() {
+      const id = document.getElementById('invoice-id').value.trim();
+      const total = document.getElementById('total').value.trim();
+      const kode = document.getElementById('kode').value.trim().toUpperCase();
+      const resultElem = document.getElementById('result');
+
+      if (!id || !total || !kode) {
+        resultElem.innerHTML = "⚠️ Mohon isi semua kolom.";
+        resultElem.className = "result invalid";
+        return;
+      }
+
+      const generated = generateValidationCode(id, total);
+      if (generated === kode) {
+        resultElem.innerHTML = "✅ Invoice Asli - Data Valid.";
+        resultElem.className = "result valid";
+      } else {
+        resultElem.innerHTML = "❌ Invoice Mungkin Telah Diubah.";
+        resultElem.className = "result invalid";
+      }
+    }
+  </script>
+</body>
+</html>
